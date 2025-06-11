@@ -1,72 +1,65 @@
 import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.14.3/+esm";
 
-const video = document.getElementById("video");
-const alertBox = document.getElementById("alert");
-
-function showError(message) {
-  alertBox.textContent = `⚠️ ${message}`;
-  alertBox.style.display = "block";
-}
-
-const RPC_URL = "https://testnet.skalenodes.com/v1/giant-half-dual-testnet";
 const CONTRACT_ADDRESS = "0x218Ec19C81A1bd392e8a544780d206563909200a";
-
+const RPC_URL = "https://testnet.skalenodes.com/v1/giant-half-dual-testnet";
 const ABI = [
-  "function getLatestIndex() public view returns (uint256)",
-  "function getChunk(uint256 index) public view returns (uint256, uint256, bytes)"
+  "function getLatestIndex() view returns (uint256)",
+  "function getChunk(uint256 index) view returns (uint256, uint256, bytes)"
 ];
 
 const provider = new ethers.JsonRpcProvider(RPC_URL);
 const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
 
+const video = document.getElementById("video");
 const mediaSource = new MediaSource();
 video.src = URL.createObjectURL(mediaSource);
 
 let sourceBuffer;
-let lastIndex = 0;
-const queue = [];
+let fetching = false;
+let currentIndex = 0;
+const delayBuffer = 2;
 
-mediaSource.addEventListener("sourceopen", () => {
-  try {
-    sourceBuffer = mediaSource.addSourceBuffer('video/mp2t; codecs="avc1.640028, mp4a.40.2"');
-
-    sourceBuffer.addEventListener("updateend", () => {
-      if (queue.length > 0 && !sourceBuffer.updating) {
-        const chunk = queue.shift();
-        try {
-          sourceBuffer.appendBuffer(chunk);
-        } catch (err) {
-          showError(`Append failed: ${err.message}`);
-        }
-      }
-    });
-
-    fetchChunks();
-  } catch (e) {
-    showError("Failed to open media source: " + e.message);
-  }
+mediaSource.addEventListener("sourceopen", async () => {
+  sourceBuffer = mediaSource.addSourceBuffer('video/mp2t; codecs="avc1.640028, mp4a.40.2"');
+  pollChunks();
 });
 
-async function fetchChunks() {
+async function pollChunks() {
   while (true) {
     try {
-      const latest = await contract.getLatestIndex();
+      const latestIndex = await contract.getLatestIndex();
+      const targetIndex = latestIndex > delayBuffer ? latestIndex - delayBuffer : 0;
 
-      while (lastIndex < latest) {
-        const [index, timestamp, data] = await contract.getChunk(lastIndex);
-        const buffer = new Uint8Array(ethers.getBytes(data));
-        queue.push(buffer);
-
-        if (!sourceBuffer.updating && queue.length > 0) {
-          sourceBuffer.appendBuffer(queue.shift());
+      while (currentIndex <= targetIndex) {
+        if (sourceBuffer.updating || fetching) {
+          await wait(100); // wait a bit if buffer is busy
+          continue;
         }
 
-        lastIndex++;
+        fetching = true;
+        try {
+          const chunk = await contract.getChunk(currentIndex);
+          const data = ethers.getBytes(chunk[2]);
+          sourceBuffer.appendBuffer(new Uint8Array(data));
+          console.log(`✅ Appended chunk ${currentIndex}`);
+          currentIndex++;
+        } catch (err) {
+          console.warn(`⚠️ Fetch error at chunk ${currentIndex}:`, err.message || err);
+          // skip invalid chunks
+          currentIndex++;
+        } finally {
+          fetching = false;
+        }
       }
-    } catch (err) {
-      showError(`Fetch error: ${err.reason || err.message}`);
-    }
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+      await wait(1000); // delay before next poll
+    } catch (err) {
+      console.error("❌ Viewer error:", err.message || err);
+      await wait(2000);
+    }
   }
+}
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
