@@ -1,12 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>On-Chain Stream Viewer</title>
+  <meta charset="UTF-8" />
+  <title>On‑Chain Stream Viewer</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      background: #111;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    #alert {
+      background: #ff4444;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 5px;
+      display: none;
+      margin-bottom: 20px;
+    }
+    video {
+      width: 90%;
+      max-width: 800px;
+      border: 3px solid #333;
+      border-radius: 10px;
+    }
+  </style>
 </head>
 <body>
-  <h1>📺 On-Chain Stream Viewer</h1>
-  <video id="player" controls autoplay></video>
+  <h1>📺 On‑Chain Stream Viewer</h1>
+  <div id="alert"></div>
+  <video id="player" controls autoplay muted></video>
   <script type="module" src="viewer.js"></script>
 </body>
 </html>
