@@ -3,40 +3,35 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>On-Chain Stream Viewer</title>
+  <title>OnChain Stream Viewer</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #121212;
-      color: white;
+      font-family: sans-serif;
+      background: #111;
+      color: #eee;
       text-align: center;
-      padding: 20px;
+      margin: 0;
+      padding: 0;
     }
-
     video {
-      width: 90%;
-      max-width: 800px;
-      border: 2px solid #fff;
-      border-radius: 8px;
-      background: #000;
+      margin-top: 20px;
+      max-width: 90vw;
+      max-height: 80vh;
+      background: black;
     }
-
-    #alert {
-      display: none;
-      background-color: #ffdddd;
-      color: #900;
+    #errorBox {
+      background-color: #ff4d4d;
+      color: white;
       padding: 10px;
-      margin: 20px auto;
-      border: 1px solid #f44336;
-      border-radius: 4px;
-      font-weight: bold;
-      max-width: 800px;
+      margin: 10px auto;
+      width: 90%;
+      display: none;
     }
   </style>
 </head>
 <body>
-  <h1>⛓️ On-Chain Live Stream</h1>
-  <div id="alert"></div>
+  <h1>📡 On-Chain Stream Viewer</h1>
+  <div id="errorBox"></div>
   <video id="video" controls autoplay muted></video>
 
   <script type="module" src="viewer.js"></script>
