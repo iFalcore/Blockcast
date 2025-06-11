@@ -1,19 +1,14 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>On-Chain Stream Viewer</title>
-  <style>
-    body { background: #111; color: white; text-align: center; font-family: sans-serif; }
-    video { width: 80%; margin-top: 2rem; background: black; }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>On-Chain Live Stream Viewer</title>
 </head>
-<body>
-  <h1>📡 Live On-Chain Stream</h1>
-  <video id="video" controls autoplay muted></video>
-  <p id="status">Connecting...</p>
-
-  <script src="https://cdn.jsdelivr.net/npm/ethers@6.14.3/dist/ethers.min.js"></script>
-  <script type="module" src="viewer.js"></script>
+<body style="background-color: #111; color: #fff; text-align: center; font-family: sans-serif;">
+  <h1>📡 On-Chain Live Stream</h1>
+  <video id="player" controls autoplay style="width: 80%; max-width: 900px; margin-top: 20px;"></video>
+  <script type="module" src="./viewer.js"></script>
 </body>
 </html>
