@@ -24,11 +24,17 @@
       margin-top: 1em;
       font-size: 0.95em;
     }
+    #loading {
+      margin-top: 1em;
+      font-size: 1em;
+      color: #ccc;
+    }
   </style>
 </head>
 <body>
   <h1>🎥 On-Chain Live Stream</h1>
   <video id="video" controls autoplay muted></video>
+  <div id="loading">⏳ Buffering stream...</div>
   <div id="errorBox"></div>
   <script type="module" src="viewer.js"></script>
 </body>
