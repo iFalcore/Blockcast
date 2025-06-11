@@ -3,37 +3,34 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>OnChain Stream Viewer</title>
+  <title>On-Chain Stream Viewer</title>
   <style>
     body {
       font-family: sans-serif;
       background: #111;
       color: #eee;
       text-align: center;
-      margin: 0;
-      padding: 0;
+      padding: 2rem;
     }
     video {
-      margin-top: 20px;
-      max-width: 90vw;
-      max-height: 80vh;
-      background: black;
+      width: 100%;
+      max-width: 800px;
+      background: #000;
+      margin: 1rem auto;
     }
-    #errorBox {
-      background-color: #ff4d4d;
-      color: white;
-      padding: 10px;
-      margin: 10px auto;
-      width: 90%;
-      display: none;
+    #error-box {
+      color: red;
+      font-weight: bold;
+      margin-top: 1rem;
     }
   </style>
 </head>
 <body>
-  <h1>📡 On-Chain Stream Viewer</h1>
-  <div id="errorBox"></div>
+  <h1>On-Chain Live Stream</h1>
   <video id="video" controls autoplay muted></video>
+  <div id="error-box"></div>
 
-  <script type="module" src="viewer.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.14.3/dist/ethers.umd.min.js"></script>
+  <script src="viewer.js"></script>
 </body>
 </html>
