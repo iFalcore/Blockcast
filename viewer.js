@@ -1,3 +1,5 @@
+# Save the fixed viewer.js code with safe chunk index handling
+fixed_viewer_js = """
 import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.14.3/dist/ethers.min.js";
 
 // === CONFIG ===
@@ -53,14 +55,15 @@ async function pollLatestChunk() {
   try {
     const latestIndexBN = await contract.getLength();
     const latestIndex = Number(latestIndexBN);
+    const nextIndex = latestIndex - 1;
 
-    if (latestIndex > 0 && latestIndex - 1 !== lastIndex) {
-      const data = await contract.getChunk(latestIndex - 1);
+    if (latestIndex > 0 && nextIndex !== lastIndex && nextIndex >= 0) {
+      const data = await contract.getChunk(nextIndex);
       const buffer = ethers.getBytes(data);
 
       if (mediaSource.readyState === "open" && !sourceBuffer.updating) {
         sourceBuffer.appendBuffer(new Uint8Array(buffer));
-        lastIndex = latestIndex - 1;
+        lastIndex = nextIndex;
         console.log(`✅ Appended chunk ${lastIndex}`);
       }
     }
@@ -68,5 +71,13 @@ async function pollLatestChunk() {
     showError(`⚠️ Fetch error: ${err.message}`);
   }
 
-  setTimeout(pollLatestChunk, 3000); // ~3s delay to give chunks time to arrive
+  setTimeout(pollLatestChunk, 3000);
 }
+"""
+
+# Write to file
+fixed_viewer_path = "/mnt/data/viewer.js"
+with open(fixed_viewer_path, "w", encoding="utf-8") as file:
+    file.write(fixed_viewer_js)
+
+fixed_viewer_path
