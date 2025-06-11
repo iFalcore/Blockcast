@@ -1,13 +1,13 @@
-# Save the fixed viewer.js code with safe chunk index handling
-fixed_viewer_js = """
+# Save the corrected viewer.js that matches the latest contract definition
+corrected_viewer_js = """
 import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.14.3/dist/ethers.min.js";
 
 // === CONFIG ===
 const CONTRACT_ADDRESS = "0x218Ec19C81A1bd392e8a544780d206563909200a";
 const RPC_URL = "https://testnet.skalenodes.com/v1/giant-half-dual-testnet";
 const ABI = [
-  "function getLength() view returns (uint256)",
-  "function getChunk(uint256) view returns (bytes)"
+  "function getLatestIndex() view returns (uint256)",
+  "function getChunk(uint256) view returns (uint256, uint256, bytes)"
 ];
 
 // === ELEMENTS ===
@@ -53,12 +53,12 @@ const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
 // === LIVE POLLING ===
 async function pollLatestChunk() {
   try {
-    const latestIndexBN = await contract.getLength();
+    const latestIndexBN = await contract.getLatestIndex();
     const latestIndex = Number(latestIndexBN);
     const nextIndex = latestIndex - 1;
 
     if (latestIndex > 0 && nextIndex !== lastIndex && nextIndex >= 0) {
-      const data = await contract.getChunk(nextIndex);
+      const [, , data] = await contract.getChunk(nextIndex);
       const buffer = ethers.getBytes(data);
 
       if (mediaSource.readyState === "open" && !sourceBuffer.updating) {
@@ -75,9 +75,9 @@ async function pollLatestChunk() {
 }
 """
 
-# Write to file
-fixed_viewer_path = "/mnt/data/viewer.js"
-with open(fixed_viewer_path, "w", encoding="utf-8") as file:
-    file.write(fixed_viewer_js)
+# Write the corrected viewer.js to a file
+corrected_viewer_path = "/mnt/data/viewer.js"
+with open(corrected_viewer_path, "w", encoding="utf-8") as file:
+    file.write(corrected_viewer_js)
 
-fixed_viewer_path
+corrected_viewer_path
