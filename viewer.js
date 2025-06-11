@@ -1,8 +1,14 @@
 import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.14.3/+esm";
 
+function showAlert(message) {
+  const alertBox = document.getElementById("alert");
+  alertBox.innerText = message;
+  alertBox.style.display = "block";
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   const video = document.getElementById("player");
-  if (!video) return console.error("❌ No video element found");
+  if (!video) return showAlert("❌ No video element found");
 
   const mediaSource = new MediaSource();
   video.src = URL.createObjectURL(mediaSource);
@@ -20,16 +26,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   let sourceBuffer;
 
   mediaSource.addEventListener("sourceopen", async () => {
-    sourceBuffer = mediaSource.addSourceBuffer('video/mp2t; codecs="avc1.640028, mp4a.40.2"');
+    try {
+      sourceBuffer = mediaSource.addSourceBuffer('video/mp2t; codecs="avc1.640028, mp4a.40.2"');
+    } catch (err) {
+      return showAlert(`❌ Could not create SourceBuffer: ${err.message}`);
+    }
 
     let latestIndex;
     try {
       latestIndex = (await contract.getLatestIndex()).toNumber();
     } catch (e) {
-      return console.error("❌ Contract unreachable or wrong address", e);
+      return showAlert("❌ Could not reach contract or read latest index.");
     }
-
-    console.log(`🔢 Latest chunk index: ${latestIndex}`);
 
     const BUFFER_SIZE = 360;
     let start = Math.max(0, latestIndex - BUFFER_SIZE);
@@ -42,11 +50,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         await new Promise(res => sourceBuffer.addEventListener("updateend", res, { once: true }));
         console.log(`✅ Appended chunk ${i}`);
       } catch (err) {
-        console.warn(`⚠️ Skipping chunk ${i}:`, err.reason || err.code || err.message);
+        console.warn(`⚠️ Chunk ${i} skipped: ${err.message || err.code}`);
+        showAlert(`⚠️ Skipping chunk ${i}: ${err.message || err.code}`);
       }
     }
 
     mediaSource.endOfStream();
-    console.log("🎞️ Playback complete");
   });
 });
