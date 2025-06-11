@@ -1,5 +1,4 @@
-# Regenerate a clean viewer.js file with UTF-8 encoding (no BOM)
-clean_viewer_js = """
+
 import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.14.3/dist/ethers.min.js";
 
 // === CONFIG ===
@@ -73,11 +72,3 @@ async function pollLatestChunk() {
 
   setTimeout(pollLatestChunk, 3000);
 }
-"""
-
-# Save to file without BOM
-clean_viewer_path = "/mnt/data/viewer-clean.js"
-with open(clean_viewer_path, "w", encoding="utf-8") as file:
-    file.write(clean_viewer_js)
-
-clean_viewer_path
