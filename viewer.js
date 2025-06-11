@@ -25,33 +25,39 @@ video.src = URL.createObjectURL(mediaSource);
 let sourceBuffer;
 let lastIndex = 0;
 const queue = [];
-let playbackStarted = false;
 
 mediaSource.addEventListener("sourceopen", () => {
-  sourceBuffer = mediaSource.addSourceBuffer('video/mp2t; codecs="avc1.640028, mp4a.40.2"');
+  try {
+    sourceBuffer = mediaSource.addSourceBuffer('video/mp2t; codecs="avc1.640028, mp4a.40.2"');
 
-  sourceBuffer.addEventListener("updateend", () => {
-    if (queue.length > 0 && !sourceBuffer.updating) {
-      sourceBuffer.appendBuffer(queue.shift());
-    }
-  });
+    sourceBuffer.addEventListener("updateend", () => {
+      if (queue.length > 0 && !sourceBuffer.updating) {
+        const chunk = queue.shift();
+        try {
+          sourceBuffer.appendBuffer(chunk);
+        } catch (err) {
+          showError(`Append failed: ${err.message}`);
+        }
+      }
+    });
 
-  startFetchingChunks();
+    fetchChunks();
+  } catch (e) {
+    showError("Failed to open media source: " + e.message);
+  }
 });
 
-async function startFetchingChunks() {
+async function fetchChunks() {
   while (true) {
     try {
       const latest = await contract.getLatestIndex();
 
       while (lastIndex < latest) {
         const [index, timestamp, data] = await contract.getChunk(lastIndex);
-        const chunkBuffer = ethers.getBytes(data);
-        queue.push(new Uint8Array(chunkBuffer));
+        const buffer = new Uint8Array(ethers.getBytes(data));
+        queue.push(buffer);
 
-        // Only start playback when we have at least 3 chunks
-        if (!playbackStarted && queue.length >= 3 && !sourceBuffer.updating) {
-          playbackStarted = true;
+        if (!sourceBuffer.updating && queue.length > 0) {
           sourceBuffer.appendBuffer(queue.shift());
         }
 
@@ -59,9 +65,8 @@ async function startFetchingChunks() {
       }
     } catch (err) {
       showError(`Fetch error: ${err.reason || err.message}`);
-      console.warn("⚠️ Fetch error", err);
     }
 
-    await new Promise((res) => setTimeout(res, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 }
