@@ -1,36 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>On-Chain Stream Viewer</title>
+  <meta charset="UTF-8">
+  <title>On-Chain Live Stream Viewer</title>
   <style>
     body {
       font-family: sans-serif;
-      background: #111;
-      color: #eee;
+      background-color: #121212;
+      color: white;
       text-align: center;
-      padding: 2rem;
+      padding: 2em;
     }
     video {
-      width: 100%;
+      width: 90%;
       max-width: 800px;
-      background: #000;
-      margin: 1rem auto;
+      border: 2px solid #444;
+      border-radius: 8px;
+      margin-top: 1em;
     }
-    #error-box {
+    #errorBox {
       color: red;
-      font-weight: bold;
-      margin-top: 1rem;
+      margin-top: 1em;
+      font-size: 0.95em;
     }
   </style>
 </head>
 <body>
-  <h1>On-Chain Live Stream</h1>
+  <h1>🎥 On-Chain Live Stream</h1>
   <video id="video" controls autoplay muted></video>
-  <div id="error-box"></div>
+  <div id="errorBox"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/ethers@6.14.3/dist/ethers.umd.min.js"></script>
-  <script src="viewer.js"></script>
+  <!-- viewer.js must use type="module" for ES6 import to work -->
+  <script type="module" src="viewer.js"></script>
 </body>
 </html>
