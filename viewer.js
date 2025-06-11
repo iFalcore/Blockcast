@@ -1,5 +1,5 @@
-# Save the corrected viewer.js that matches the latest contract definition
-corrected_viewer_js = """
+# Regenerate a clean viewer.js file with UTF-8 encoding (no BOM)
+clean_viewer_js = """
 import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.14.3/dist/ethers.min.js";
 
 // === CONFIG ===
@@ -75,9 +75,9 @@ async function pollLatestChunk() {
 }
 """
 
-# Write the corrected viewer.js to a file
-corrected_viewer_path = "/mnt/data/viewer.js"
-with open(corrected_viewer_path, "w", encoding="utf-8") as file:
-    file.write(corrected_viewer_js)
+# Save to file without BOM
+clean_viewer_path = "/mnt/data/viewer-clean.js"
+with open(clean_viewer_path, "w", encoding="utf-8") as file:
+    file.write(clean_viewer_js)
 
-corrected_viewer_path
+clean_viewer_path
