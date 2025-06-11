@@ -1,71 +1,58 @@
+import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.14.3/dist/ethers.min.js";
+
+// === CONFIG ===
 const CONTRACT_ADDRESS = "0x218Ec19C81A1bd392e8a544780d206563909200a";
 const RPC_URL = "https://testnet.skalenodes.com/v1/giant-half-dual-testnet";
-
 const ABI = [
-  "function getLatestIndex() public view returns (uint256)",
-  "function getChunk(uint256 index) public view returns (uint256, uint256, bytes)"
+  "function getLatestIndex() view returns (uint256)",
+  "function getChunk(uint256 index) view returns (uint256, uint256, bytes)"
 ];
 
-const provider = new ethers.JsonRpcProvider(RPC_URL);
-const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
-
+// === ELEMENTS ===
 const video = document.getElementById("video");
 const errorBox = document.getElementById("errorBox");
 
-let mediaSource = new MediaSource();
+// === MEDIA SETUP ===
+const mediaSource = new MediaSource();
 video.src = URL.createObjectURL(mediaSource);
 
-let lastIndex = -1;
 let sourceBuffer;
+let lastIndex = -1;
 
 mediaSource.addEventListener("sourceopen", () => {
-  sourceBuffer = mediaSource.addSourceBuffer('video/mp2t; codecs="avc1.42E01E, mp4a.40.2"');
-  pollChunks();
+  sourceBuffer = mediaSource.addSourceBuffer('video/mp2t; codecs="avc1.640029, mp4a.40.2"');
+  pollLatestChunk(); // Start polling once buffer is ready
 });
 
-async function pollChunks() {
-  while (true) {
-    try {
-      const latestIndexBN = await contract.getLatestIndex();
-      const latestIndex = Number(latestIndexBN);
-
-      for (let i = lastIndex + 1; i < latestIndex; i++) {
-        try {
-          const [, , data] = await contract.getChunk(i);
-          if (data && data.length > 0) {
-            const buffer = ethers.getBytes(data);
-            appendChunk(buffer);
-            lastIndex = i;
-          }
-        } catch (chunkErr) {
-          showError(`⚠️ Chunk ${i} fetch failed: ${chunkErr.message}`);
-        }
-      }
-    } catch (err) {
-      showError(`⚠️ Fetch error: ${err.message}`);
-    }
-
-    await delay(3000); // 3 second delay between polls
-  }
+// === ERROR HANDLER ===
+function showError(msg) {
+  console.error(msg);
+  if (errorBox) errorBox.textContent = msg;
 }
 
-function appendChunk(chunk) {
-  if (sourceBuffer.updating) {
-    setTimeout(() => appendChunk(chunk), 100);
-    return;
-  }
+// === ETH SETUP ===
+const provider = new ethers.JsonRpcProvider(RPC_URL);
+const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
+
+// === LIVE POLLING ===
+async function pollLatestChunk() {
   try {
-    sourceBuffer.appendBuffer(new Uint8Array(chunk));
-  } catch (e) {
-    showError("⚠️ AppendBuffer error: " + e.message);
+    const latestIndexBN = await contract.getLatestIndex();
+    const latestIndex = Number(latestIndexBN);
+
+    if (latestIndex > 0 && latestIndex - 1 !== lastIndex) {
+      const [, , data] = await contract.getChunk(latestIndex - 1);
+      const buffer = ethers.getBytes(data);
+
+      if (!sourceBuffer.updating) {
+        sourceBuffer.appendBuffer(new Uint8Array(buffer));
+        lastIndex = latestIndex - 1;
+        console.log(`✅ Appended chunk ${lastIndex}`);
+      }
+    }
+  } catch (err) {
+    showError(`⚠️ Fetch error: ${err.message}`);
   }
-}
 
-function delay(ms) {
-  return new Promise(res => setTimeout(res, ms));
-}
-
-function showError(message) {
-  console.error(message);
-  errorBox.textContent = message;
+  setTimeout(pollLatestChunk, 3000); // ~3s delay to give chunks time to arrive
 }
