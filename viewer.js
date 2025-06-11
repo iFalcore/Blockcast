@@ -1,4 +1,3 @@
-
 import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.14.3/dist/ethers.min.js";
 
 // === CONFIG ===
@@ -20,6 +19,7 @@ video.src = URL.createObjectURL(mediaSource);
 
 let sourceBuffer;
 let lastIndex = -1;
+let nextChunk = null;
 const approxChunkDuration = 10;
 
 mediaSource.addEventListener("sourceopen", () => {
@@ -30,9 +30,28 @@ mediaSource.addEventListener("sourceopen", () => {
   }
 
   sourceBuffer = mediaSource.addSourceBuffer(mime);
+
+  sourceBuffer.addEventListener("updateend", () => {
+    if (nextChunk) {
+      const { index, buffer } = nextChunk;
+      try {
+        sourceBuffer.timestampOffset = index * approxChunkDuration;
+        sourceBuffer.appendBuffer(new Uint8Array(buffer));
+        lastIndex = index;
+        console.log(`✅ Appended chunk ${lastIndex}`);
+        if (video.paused) video.play();
+        if (loadingIndicator) loadingIndicator.style.display = "none";
+      } catch (err) {
+        showError(`❌ Buffer error (updateend): ${err.message}`);
+      }
+      nextChunk = null;
+    }
+  });
+
   pollLatestChunk();
 });
 
+// === ERROR HANDLER ===
 function showError(msg) {
   console.error(msg);
   if (errorBox) errorBox.textContent = msg;
@@ -43,9 +62,11 @@ video.addEventListener("error", () => {
   if (err) showError(`🚨 Video Error (${err.code}): ${err.message || "Unknown error"}`);
 });
 
+// === ETH SETUP ===
 const provider = new ethers.JsonRpcProvider(RPC_URL);
 const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
 
+// === LIVE POLLING ===
 async function pollLatestChunk() {
   try {
     const latestIndex = Number(await contract.getLatestIndex());
@@ -55,28 +76,13 @@ async function pollLatestChunk() {
       const [, , data] = await contract.getChunk(nextIndex);
       const buffer = ethers.getBytes(data);
 
-      const append = () => {
-        try {
-          if (!sourceBuffer.updating) {
-            sourceBuffer.timestampOffset = nextIndex * approxChunkDuration;
-            sourceBuffer.appendBuffer(new Uint8Array(buffer));
-            lastIndex = nextIndex;
-            console.log(`✅ Appended chunk ${lastIndex}`);
-            if (video.paused) video.play();
-            if (loadingIndicator) loadingIndicator.style.display = "none";
-          } else {
-            setTimeout(append, 100);
-          }
-        } catch (err) {
-          showError(`❌ Buffer error: ${err.message}`);
-        }
-      };
-
-      append();
+      if (!sourceBuffer.updating && !nextChunk) {
+        nextChunk = { index: nextIndex, buffer };
+      }
     }
   } catch (err) {
     showError(`⚠️ Fetch error: ${err.message}`);
   }
 
-  setTimeout(pollLatestChunk, 12000);
+  setTimeout(pollLatestChunk, 12000); // Adjust polling rate for chunk timing
 }
