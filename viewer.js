@@ -1,4 +1,5 @@
-
+# Generate a viewer.js file with timestampOffset fix to allow playback progression
+fixed_viewer_js_with_offset = """
 import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.14.3/dist/ethers.min.js";
 
 // === CONFIG ===
@@ -19,6 +20,7 @@ video.src = URL.createObjectURL(mediaSource);
 
 let sourceBuffer;
 let lastIndex = -1;
+const approxChunkDuration = 1; // Assume each chunk is 1s long
 
 mediaSource.addEventListener("sourceopen", () => {
   const mime = 'video/mp2t; codecs="avc1.640029, mp4a.40.2"';
@@ -61,14 +63,24 @@ async function pollLatestChunk() {
       const buffer = ethers.getBytes(data);
 
       if (mediaSource.readyState === "open" && !sourceBuffer.updating) {
+        sourceBuffer.timestampOffset = nextIndex * approxChunkDuration;
         sourceBuffer.appendBuffer(new Uint8Array(buffer));
         lastIndex = nextIndex;
         console.log(`✅ Appended chunk ${lastIndex}`);
+
+        if (video.paused) video.play(); // ensure playback resumes
       }
     }
   } catch (err) {
     showError(`⚠️ Fetch error: ${err.message}`);
   }
 
-  setTimeout(pollLatestChunk, 3000);
+  setTimeout(pollLatestChunk, 1200);
 }
+"""
+
+fixed_viewer_js_path = "/mnt/data/viewer-timestamp-fix.js"
+with open(fixed_viewer_js_path, "w", encoding="utf-8") as f:
+    f.write(fixed_viewer_js_with_offset)
+
+fixed_viewer_js_path
