@@ -69,31 +69,29 @@ ipcMain.handle('start-streaming', async (event, config) => {
     });
     await new Promise(resolve => listDevices.on('close', resolve));
 
-    const ffmpegArgs = [
-      '-f', 'dshow',
-      '-rtbufsize', '100M',
-      '-i', 'video=OBS Virtual Camera',
-      '-c:v', 'libx264',
-      '-preset', 'ultrafast',
-      '-tune', 'zerolatency',
-      '-profile:v', 'baseline',
-      '-level', '3.0',
-      '-pix_fmt', 'yuv420p',
-      '-b:v', '500k',
-      '-maxrate', '500k',
-      '-bufsize', '1000k',
-      '-g', '30',
-      '-keyint_min', '1',
-      '-sc_threshold', '0',
-      '-flush_packets', '1',
-      '-max_delay', '0',
-      '-movflags', 'frag_keyframe+empty_moov+default_base_moof',
-      '-f', 'segment',
-      '-segment_time', '1',
-      '-reset_timestamps', '1',
-      '-segment_format', 'mp4',
-      path.join(chunksDir, 'chunk_%03d.mp4')
-    ];
+ const ffmpegArgs = [
+  '-f', 'dshow',
+  '-rtbufsize', '500M',                            // Prevent dropped frames
+  '-i', 'video=OBS Virtual Camera',
+  '-c:v', 'libx264',
+  '-preset', 'ultrafast',
+  '-tune', 'zerolatency',
+  '-profile:v', 'baseline',
+  '-level', '3.0',
+  '-pix_fmt', 'yuv420p',
+  '-b:v', '500k',
+  '-maxrate', '500k',
+  '-bufsize', '1000k',
+  '-g', '60',                                       // Keyframe every 30 frames (1s @ 30fps)
+  '-keyint_min', '1',
+  '-sc_threshold', '0',
+  '-f', 'segment',                                  // Enable segmenting
+  '-segment_time', '2',                             // 2 second per chunk
+  '-segment_format', 'mpegts',                      // MPEG-TS format
+  '-segment_list_type', 'csv',                      // Optional: manifest file for chunk index
+  '-reset_timestamps', '1',                         // Restart timestamps per segment
+  path.join(chunksDir, 'chunk%03d.ts')              // Output pattern
+];
 
     ffmpegProcess = spawn(ffmpegPath, ffmpegArgs);
 
@@ -110,7 +108,7 @@ ipcMain.handle('start-streaming', async (event, config) => {
       stopStreaming();
     });
 
-    watcher = chokidar.watch(path.join(chunksDir, '*.mp4'), {
+    watcher = chokidar.watch(path.join(chunksDir, '*.ts'), {
       persistent: true,
       ignoreInitial: true
     });
@@ -118,6 +116,7 @@ ipcMain.handle('start-streaming', async (event, config) => {
     watcher.on('add', async (filepath) => {
       mainWindow.webContents.send('new-chunk', filepath);
       try {
+        await new Promise(resolve => setTimeout(resolve, 500));
         const result = await uploader.uploadChunk(filepath);
         mainWindow.webContents.send('log-message',
           `✅ Uploaded ${result.filename} (${result.size} bytes) - TX: ${result.txHash}`);
