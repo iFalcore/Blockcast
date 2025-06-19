@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blockchain Live Streamer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      color: #4a9eff;
+    }
+
+    .card {
+      background: #1a1a1a;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 14px;
+      color: #b0b0b0;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      background: #2a2a2a;
+      border: 1px solid #3a3a3a;
+      border-radius: 5px;
+      color: #e0e0e0;
+      font-size: 14px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      margin: 5px 0;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+      background: #4a9eff;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #3a8eef;
+    }
+
+    .btn-danger {
+      background: #ff4757;
+      color: white;
+    }
+
+    .btn-secondary {
+      background: #3a3a3a;
+      color: #e0e0e0;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    #status {
+      text-align: center;
+      padding: 10px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+      font-weight: bold;
+    }
+
+    #status.idle {
+      background: #3a3a3a;
+    }
+
+    #status.streaming {
+      background: #2ed573;
+      color: #000;
+    }
+
+    #console {
+      background: #0a0a0a;
+      border: 1px solid #2a2a2a;
+      border-radius: 5px;
+      padding: 10px;
+      height: 200px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 12px;
+    }
+
+    .log-entry {
+      margin-bottom: 5px;
+    }
+
+    .log-entry.error {
+      color: #ff4757;
+    }
+
+    .log-entry.success {
+      color: #2ed573;
+    }
+
+    .viewer-link {
+      background: #1e3c72;
+      padding: 15px;
+      border-radius: 5px;
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    .viewer-link a {
+      color: #4a9eff;
+      text-decoration: none;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎥 Blockchain Live Streamer</h1>
+    
+    <div id="status" class="idle">⚫ Idle</div>
+
+    <div class="card">
+      <h2>Configuration</h2>
+      <div class="form-group">
+        <label>RPC URL</label>
+        <input type="text" id="rpcUrl" value="https://testnet.skalenodes.com/v1/giant-half-dual-testnet">
+      </div>
+      <div class="form-group">
+        <label>Private Key</label>
+        <input type="password" id="privateKey" placeholder="Your private key">
+      </div>
+      <div class="form-group">
+        <label>Contract Address</label>
+        <input type="text" id="contractAddress" value="0x218Ec19C81A1bd392e8a544780d206563909200a">
+      </div>
+      <button id="saveConfig" class="btn-secondary">💾 Save Config</button>
+    </div>
+
+    <div class="card">
+      <h2>Stream Control</h2>
+      <button id="startStream" class="btn-primary">▶️ Start Streaming</button>
+      <button id="stopStream" class="btn-danger" disabled>⏹️ Stop Streaming</button>
+      
+      <div class="viewer-link" style="display: none;" id="viewerLink">
+        <p>View your stream at:</p>
+        <a href="#" target="_blank" id="streamLink">Open Stream Viewer</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Console</h2>
+      <div id="console"></div>
+    </div>
+  </div>
+
+  <script>
+    // Simple logging function
+    function log(message, type = 'info') {
+      const consoleEl = document.getElementById('console');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      consoleEl.appendChild(entry);
+      consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+
+    // Load saved config
+    window.electronAPI.loadConfig().then(result => {
+      if (result.success) {
+        document.getElementById('rpcUrl').value = result.config.rpcUrl || '';
+        document.getElementById('privateKey').value = result.config.privateKey || '';
+        document.getElementById('contractAddress').value = result.config.contractAddress || '';
+        log('Configuration loaded', 'success');
+      }
+    });
+
+    // Save config
+    document.getElementById('saveConfig').addEventListener('click', async () => {
+      const config = {
+        rpcUrl: document.getElementById('rpcUrl').value,
+        privateKey: document.getElementById('privateKey').value,
+        contractAddress: document.getElementById('contractAddress').value
+      };
+      
+      const result = await window.electronAPI.saveConfig(config);
+      if (result.success) {
+        log('Configuration saved', 'success');
+      } else {
+        log('Failed to save config', 'error');
+      }
+    });
+
+    // Start streaming
+    document.getElementById('startStream').addEventListener('click', async () => {
+      const config = {
+        rpcUrl: document.getElementById('rpcUrl').value,
+        privateKey: document.getElementById('privateKey').value,
+        contractAddress: document.getElementById('contractAddress').value
+      };
+
+      if (!config.rpcUrl || !config.privateKey || !config.contractAddress) {
+        log('Please fill in all fields', 'error');
+        return;
+      }
+
+      log('Starting stream...', 'info');
+      const result = await window.electronAPI.startStreaming(config);
+      
+      if (result.success) {
+        document.getElementById('status').className = 'streaming';
+        document.getElementById('status').textContent = '🔴 Streaming';
+        document.getElementById('startStream').disabled = true;
+        document.getElementById('stopStream').disabled = false;
+        
+        // Create viewer URL
+        const viewerPath = `${window.location.origin}/viewer.html?contract=${config.contractAddress}&rpc=${encodeURIComponent(config.rpcUrl)}`;
+        document.getElementById('viewerLink').style.display = 'block';
+        
+        // Update link text and add click handler
+        const streamLink = document.getElementById('streamLink');
+        streamLink.textContent = 'Open Stream Viewer in Browser';
+        streamLink.onclick = (e) => {
+          e.preventDefault();
+          window.electronAPI.openExternal(viewerPath);
+          log('Opening viewer in browser...', 'success');
+        };
+        
+        log('Stream started! Check OBS Virtual Camera', 'success');
+        log('Click "Open Stream Viewer" to watch', 'info');
+      } else {
+        log(`Failed to start: ${result.error}`, 'error');
+      }
+    });
+
+    // Stop streaming
+    document.getElementById('stopStream').addEventListener('click', async () => {
+      const result = await window.electronAPI.stopStreaming();
+      if (result.success) {
+        document.getElementById('status').className = 'idle';
+        document.getElementById('status').textContent = '⚫ Idle';
+        document.getElementById('startStream').disabled = false;
+        document.getElementById('stopStream').disabled = true;
+        log('Stream stopped', 'info');
+      }
+    });
+
+    // Listen for messages
+    window.electronAPI.onLogMessage((message) => {
+      log(message, 'info');
+    });
+
+    window.electronAPI.onErrorMessage((message) => {
+      log(message, 'error');
+    });
+
+    window.electronAPI.onNewChunk((filepath) => {
+      const filename = filepath.split(/[\\/]/).pop();
+      log(`Processing ${filename}`, 'info');
+    });
+  </script>
+</body>
+</html>
